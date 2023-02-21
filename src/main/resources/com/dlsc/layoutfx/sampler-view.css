@@ -8,8 +8,10 @@
 }
 
 .pane {
-    -fx-border-color: black;
-    -fx-border-style: dashed;
+    -fx-border-color: red;
+    -fx-border-style: dotted;
+    -fx-border-insets: -1px;
+    -fx-border-width: 2px;
 }
 
 .vertical-layout {
@@ -22,8 +24,8 @@
 
 .tile-label {
     -fx-alignment: center;
-    -fx-text-fill: white;
-    -fx-background-color: black, gray;
+    -fx-background: -fx-accent;
+    -fx-background-color: rgba(255, 255, 255, .5), -fx-background;
     -fx-background-insets: 0px, 1px;
     -fx-background-radius: 6px, 5px;
     -fx-pref-width: 200px;

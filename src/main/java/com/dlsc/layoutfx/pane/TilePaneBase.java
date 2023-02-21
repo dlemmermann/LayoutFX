@@ -42,21 +42,40 @@ public abstract class TilePaneBase extends Pane {
     public TilePaneBase() {
         getChildren().addListener((ListChangeListener<Node>) c -> customLayout());
         ChangeListener<Number> numberChangeListener = (ob, ov, nv) -> customLayout();
+
         widthProperty().addListener(numberChangeListener);
+        heightProperty().addListener(numberChangeListener);
+
         prefWidthProperty().addListener(numberChangeListener);
+        prefWidthProperty().addListener(numberChangeListener);
+
         maxWidthProperty().addListener(numberChangeListener);
+        maxHeightProperty().addListener(numberChangeListener);
+
         minWidthProperty().addListener(numberChangeListener);
+        minHeightProperty().addListener(numberChangeListener);
+
         prefTileHeightProperty().addListener(numberChangeListener);
         prefTileWidthProperty().addListener(numberChangeListener);
+
+        enableAnimationProperty().addListener(it -> {
+            customLayout();
+        });
+
         hgapProperty().addListener(numberChangeListener);
         vgapProperty().addListener(numberChangeListener);
+        sceneProperty().addListener(it -> {
+            if (getScene() != null) {
+                customLayout();
+            }
+        });
     }
 
     public final void setEnableAnimation(boolean enableAnimation) {
         enableAnimationProperty().set(enableAnimation);
     }
 
-    public final boolean getEnableAnimation() {
+    public final boolean isEnableAnimation() {
         return enableAnimation == null ? DEFAULT_ENABLE_ANIMATION : enableAnimationProperty().get();
     }
 
@@ -128,7 +147,6 @@ public abstract class TilePaneBase extends Pane {
     }
 
     protected abstract void customLayout() ;
-
 
     protected void setBaseHeight(double h) {
         setMinHeight(h);

@@ -49,7 +49,7 @@ public class FixedSizeTilePane extends TilePaneBase {
         if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        if (getEnableAnimation()) {
+        if (isEnableAnimation()) {
             if (layoutAnim == null) {
                 layoutAnim = new Timeline();
             }
