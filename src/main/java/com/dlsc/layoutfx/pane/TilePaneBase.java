@@ -1,6 +1,7 @@
-package uk.co.senapt.desktop.shell.panes;
+package com.dlsc.layoutfx.pane;
 
 import javafx.animation.Timeline;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
@@ -11,15 +12,17 @@ import javafx.scene.layout.Pane;
  * Layout features:<br/>
  * 1: Child elements are located in the middle, and arranged from left to right, from top to bottom; <br/>
  * 2: The last row will still be arranged from left to right ;
+ *
+ * TODO: [V] 1. A boolean that turns animations on and off
+ * TODO:     2. maximum width and height crm tile pane
+ * TODO:     3. supportPadding
  */
-public abstract class CrmTilePaneBase extends Pane {
-    
+public abstract class TilePaneBase extends Pane {
+
     protected static final double LAYOUT_ANIME_SPEED = 180;
     protected static final int DEFAULT_PREF_TILE_WIDTH = 100;
     protected static final int DEFAULT_PREF_TILE_HEIGHT = 100;
-
-    protected final Timeline layoutAnim = new Timeline();
-
+    protected Timeline layoutAnim;
     /**
      * The width of each child element
      */
@@ -29,9 +32,40 @@ public abstract class CrmTilePaneBase extends Pane {
      */
     private SimpleDoubleProperty prefTileHeight;
 
+    private  SimpleBooleanProperty enableAnimation;
+    protected static final boolean DEFAULT_ENABLE_ANIMATION = true;
+
 
     private SimpleDoubleProperty hgap;
     private SimpleDoubleProperty vgap;
+
+    public TilePaneBase() {
+        getChildren().addListener((ListChangeListener<Node>) c -> customLayout());
+        ChangeListener<Number> numberChangeListener = (ob, ov, nv) -> customLayout();
+        widthProperty().addListener(numberChangeListener);
+        prefWidthProperty().addListener(numberChangeListener);
+        maxWidthProperty().addListener(numberChangeListener);
+        minWidthProperty().addListener(numberChangeListener);
+        prefTileHeightProperty().addListener(numberChangeListener);
+        prefTileWidthProperty().addListener(numberChangeListener);
+        hgapProperty().addListener(numberChangeListener);
+        vgapProperty().addListener(numberChangeListener);
+    }
+
+    public final void setEnableAnimation(boolean enableAnimation) {
+        enableAnimationProperty().set(enableAnimation);
+    }
+
+    public final boolean getEnableAnimation() {
+        return enableAnimation == null ? DEFAULT_ENABLE_ANIMATION : enableAnimationProperty().get();
+    }
+
+    public final SimpleBooleanProperty enableAnimationProperty() {
+        if (enableAnimation == null) {
+            enableAnimation = new SimpleBooleanProperty(DEFAULT_ENABLE_ANIMATION);
+        }
+        return enableAnimation;
+    }
 
     public final SimpleDoubleProperty hgapProperty() {
         if (hgap == null) {
@@ -91,19 +125,6 @@ public abstract class CrmTilePaneBase extends Pane {
 
     public final void setPrefTileHeight(final double prefTileHeight) {
         this.prefTileHeightProperty().set(prefTileHeight);
-    }
-
-    public CrmTilePaneBase() {
-        getChildren().addListener((ListChangeListener<Node>) c -> customLayout());
-        ChangeListener<Number> numberChangeListener = (ob, ov, nv) -> customLayout();
-        widthProperty().addListener(numberChangeListener);
-        prefWidthProperty().addListener(numberChangeListener);
-        maxWidthProperty().addListener(numberChangeListener);
-        minWidthProperty().addListener(numberChangeListener);
-        prefTileHeightProperty().addListener(numberChangeListener);
-        prefTileWidthProperty().addListener(numberChangeListener);
-        hgapProperty().addListener(numberChangeListener);
-        vgapProperty().addListener(numberChangeListener);
     }
 
     protected abstract void customLayout() ;

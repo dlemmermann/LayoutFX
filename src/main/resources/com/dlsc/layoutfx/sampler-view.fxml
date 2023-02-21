@@ -1,16 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import com.dlsc.layoutfx.pane.FixedSizeTilePane?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<?import javafx.scene.control.Button?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.dlsc.layoutfx.layoutfx.HelloController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<?import com.dlsc.layoutfx.pane.VariableSizeTilePane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.CheckBox?>
 
-    <Label fx:id="welcomeText"/>
-    <Button text="Hello!" onAction="#onHelloButtonClick"/>
+<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.dlsc.layoutfx.SamplerController" stylesheets="@sampler-view.css">
+
+    <TabPane VBox.vgrow="ALWAYS">
+        <Tab text="FixedSizeTilePane">
+            <VBox styleClass="vertical-layout">
+                <StackPane styleClass="wrapper" VBox.vgrow="ALWAYS">
+                    <FixedSizeTilePane fx:id="fixedSizeTilePane" vgap="20" hgap="20" StackPane.alignment="CENTER"
+                                       styleClass="pane">
+                        <Label text="Tile 1" styleClass="tile-label"/>
+                        <Label text="Tile 2" styleClass="tile-label"/>
+                        <Label text="Tile 3" styleClass="tile-label"/>
+                        <Label text="Tile 4" styleClass="tile-label"/>
+                        <Label text="Tile 5" styleClass="tile-label"/>
+                        <Label text="Tile 6" styleClass="tile-label"/>
+                        <Label text="Tile 7" styleClass="tile-label"/>
+                        <Label text="Tile 8" styleClass="tile-label"/>
+                    </FixedSizeTilePane>
+                </StackPane>
+                <HBox styleClass="controls">
+                    <CheckBox text="Animate" fx:id="animateFixedSizeTilePane" selected="true"/>
+                </HBox>
+            </VBox>
+        </Tab>
+        <Tab text="DynamicSizeTilePane">
+            <VBox styleClass="vertical-layout">
+                <StackPane styleClass="wrapper" VBox.vgrow="ALWAYS">
+                    <VariableSizeTilePane fx:id="variableSizeTilePane" vgap="20" hgap="20" StackPane.alignment="CENTER"
+                                          styleClass="pane">
+                        <Label text="Tile 1" styleClass="tile-label"/>
+                        <Label text="Tile 2" styleClass="tile-label"/>
+                        <Label text="Tile 3" styleClass="tile-label"/>
+                        <Label text="Tile 4" styleClass="tile-label"/>
+                        <Label text="Tile 5" styleClass="tile-label"/>
+                        <Label text="Tile 6" styleClass="tile-label"/>
+                        <Label text="Tile 7" styleClass="tile-label"/>
+                        <Label text="Tile 8" styleClass="tile-label"/>
+                    </VariableSizeTilePane>
+                </StackPane>
+                <HBox styleClass="controls">
+                    <CheckBox text="Animate" fx:id="animateVariableSizeTilePane" selected="true"/>
+                </HBox>
+            </VBox>
+        </Tab>
+    </TabPane>
 </VBox>

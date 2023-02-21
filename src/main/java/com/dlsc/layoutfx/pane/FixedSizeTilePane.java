@@ -1,8 +1,9 @@
-package uk.co.senapt.desktop.shell.panes;
+package com.dlsc.layoutfx.pane;
 
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
@@ -16,7 +17,7 @@ import javafx.util.Duration;
  * 4: The spacing will change with the width and height;
  * 5: Child elements have the same width and height
  */
-public class CrmFixedSizeTilePane extends CrmTilePaneBase {
+public class FixedSizeTilePane extends TilePaneBase {
 
     protected void customLayout() {
         ObservableList<Node> nodes = getChildren();
@@ -37,26 +38,37 @@ public class CrmFixedSizeTilePane extends CrmTilePaneBase {
     }
 
     private void multiLineLayout(int totalLen, ObservableList<Node> nodes, int eachRowLen) {
-        double newHgap = (this.getWidth()-getPrefTileWidth()*eachRowLen)/(eachRowLen+1);
+        double newHgap = (this.getWidth() - getPrefTileWidth() * eachRowLen) / (eachRowLen + 1);
         double rowSize = Math.ceil(getChildren().size() * 1.0 / eachRowLen);
         double cellHeight = getPrefTileHeight() * rowSize;
-        setBaseHeight(cellHeight+(rowSize-1)*getVgap());
+        setBaseHeight(cellHeight + (rowSize - 1) * getVgap());
         playLayoutAnim(totalLen, nodes, eachRowLen, newHgap);
     }
 
-
     private void playLayoutAnim(int totalLen, ObservableList<Node> nodes, int rowLen, double newHgap) {
-        KeyValue[] keyValues = new KeyValue[totalLen * 2];
-        for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
-            Region pane = (Region) nodes.get(i);
-            keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * getPrefTileWidth() + (i % rowLen+1) * newHgap);
-            keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * getPrefTileHeight() + (i / rowLen) * getVgap());
-        }
-        if (layoutAnim.getStatus() == Animation.Status.RUNNING) {
+        if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
-        layoutAnim.getKeyFrames().setAll(keyFrame);
-        layoutAnim.play();
+        if (getEnableAnimation()) {
+            if (layoutAnim == null) {
+                layoutAnim = new Timeline();
+            }
+            KeyValue[] keyValues = new KeyValue[totalLen * 2];
+            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
+                Region pane = (Region) nodes.get(i);
+                keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * getPrefTileWidth() + (i % rowLen + 1) * newHgap);
+                keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * getPrefTileHeight() + (i / rowLen) * getVgap());
+            }
+            KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
+            layoutAnim.getKeyFrames().setAll(keyFrame);
+            layoutAnim.play();
+        } else {
+            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
+                Region pane = (Region) nodes.get(i);
+                pane.setTranslateX((i % rowLen) * getPrefTileWidth() + (i % rowLen + 1) * newHgap);
+                pane.setTranslateY((i / rowLen) * getPrefTileHeight() + (i / rowLen) * getVgap());
+            }
+        }
+
     }
 }

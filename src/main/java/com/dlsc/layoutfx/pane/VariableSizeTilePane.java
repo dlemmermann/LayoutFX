@@ -3,6 +3,7 @@ package com.dlsc.layoutfx.pane;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
@@ -16,7 +17,7 @@ import javafx.util.Duration;
  * 4: The spacing will not change;
  * 5: Child elements have the same width and height
  */
-public class DynamicSizeTilePane extends TilePaneBase {
+public class VariableSizeTilePane extends TilePaneBase {
 
     protected void customLayout() {
         ObservableList<Node> nodes = getChildren();
@@ -25,7 +26,7 @@ public class DynamicSizeTilePane extends TilePaneBase {
             return;
         }
         double rowWidth = this.getWidth();
-        double blankWidth = (rowWidth % (getPrefTileWidth() + getHgap())) - getHgap();
+        double blankWidth = (rowWidth % (getPrefTileWidth() + getHgap())) + getHgap();
         int eachRowLen = (int) (rowWidth / (getPrefTileWidth() + getHgap()));
         if (eachRowLen == 0) {
             return;
@@ -46,7 +47,6 @@ public class DynamicSizeTilePane extends TilePaneBase {
     }
 
     private void singleLineLayout(int totalLen, ObservableList<Node> nodes, double rowWidth, int eachRowLen) {
-        layoutAnim.stop();
         double cellWidth = (rowWidth - (getHgap() * (totalLen - 1))) / totalLen;
         double cellHeight = getPrefTileHeight() * (cellWidth / getPrefTileWidth());
         setBaseHeight(cellHeight);
@@ -54,20 +54,32 @@ public class DynamicSizeTilePane extends TilePaneBase {
     }
 
     private void playLayoutAnim(int totalLen, ObservableList<Node> nodes, int rowLen, double cellWidth, double cellHeight) {
-        KeyValue[] keyValues = new KeyValue[totalLen * 2];
-        for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
-            Region pane = (Region) nodes.get(i);
-            pane.setPrefSize(cellWidth, cellHeight);
-            keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * cellWidth + (i % rowLen) * getHgap());
-            keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * cellHeight + (i / rowLen) * getVgap());
-        }
-        if (layoutAnim.getStatus() == Animation.Status.RUNNING) {
+        if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
-        layoutAnim.getKeyFrames().setAll(keyFrame);
-        layoutAnim.play();
-    }
+        if (getEnableAnimation()) {
+            if (layoutAnim == null) {
+                layoutAnim = new Timeline();
+            }
+            KeyValue[] keyValues = new KeyValue[totalLen * 2];
+            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
+                Region pane = (Region) nodes.get(i);
+                pane.setPrefSize(cellWidth, cellHeight);
+                keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * cellWidth + (i % rowLen) * getHgap());
+                keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * cellHeight + (i / rowLen) * getVgap());
+            }
+            KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
+            layoutAnim.getKeyFrames().setAll(keyFrame);
+            layoutAnim.play();
+        } else {
+            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
+                Region pane = (Region) nodes.get(i);
+                pane.setPrefSize(cellWidth, cellHeight);
+                pane.setTranslateX((i % rowLen) * cellWidth + (i % rowLen) * getHgap());
+                pane.setTranslateY((i / rowLen) * cellHeight + (i / rowLen) * getVgap());
+            }
+        }
 
+    }
 
 }

@@ -1,0 +1,31 @@
+.root {
+    -fx-pref-width: 800px;
+    -fx-pref-height: 650px;
+}
+
+.wrapper {
+    -fx-padding: 20px;
+}
+
+.pane {
+    -fx-border-color: black;
+    -fx-border-style: dashed;
+}
+
+.vertical-layout {
+    -fx-spacing: 10px;
+}
+
+.controls {
+    -fx-padding: 10px;
+}
+
+.tile-label {
+    -fx-alignment: center;
+    -fx-text-fill: white;
+    -fx-background-color: black, gray;
+    -fx-background-insets: 0px, 1px;
+    -fx-background-radius: 6px, 5px;
+    -fx-pref-width: 200px;
+    -fx-pref-height: 160px;
+}
