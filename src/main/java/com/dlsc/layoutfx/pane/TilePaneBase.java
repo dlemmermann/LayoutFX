@@ -1,18 +1,23 @@
 package com.dlsc.layoutfx.pane;
 
 import javafx.animation.Timeline;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
+import javafx.css.*;
+import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
+
+import java.util.*;
 
 /**
  * Layout features:<br/>
  * 1: Child elements are located in the middle, and arranged from left to right, from top to bottom; <br/>
  * 2: The last row will still be arranged from left to right ;
- *
+ * <p>
  * TODO: [V] 1. A boolean that turns animations on and off
  * TODO:     2. maximum width and height crm tile pane
  * TODO:     3. supportPadding
@@ -31,13 +36,15 @@ public abstract class TilePaneBase extends Pane {
      * the height of each child element
      */
     private SimpleDoubleProperty prefTileHeight;
+    /**
+     * whether to enable layout animation;
+     * true->enable
+     */
+    private StyleableBooleanProperty enableAnim;
+    protected static final boolean DEFAULT_ENABLE_ANIM = true;
 
-    private  SimpleBooleanProperty enableAnimation;
-    protected static final boolean DEFAULT_ENABLE_ANIMATION = true;
-
-
-    private SimpleDoubleProperty hgap;
-    private SimpleDoubleProperty vgap;
+    private DoubleProperty vgap;
+    private DoubleProperty hgap;
 
     public TilePaneBase() {
         getChildren().addListener((ListChangeListener<Node>) c -> customLayout());
@@ -58,9 +65,7 @@ public abstract class TilePaneBase extends Pane {
         prefTileHeightProperty().addListener(numberChangeListener);
         prefTileWidthProperty().addListener(numberChangeListener);
 
-        enableAnimationProperty().addListener(it -> {
-            customLayout();
-        });
+        enableAnimProperty().addListener(it -> customLayout());
 
         hgapProperty().addListener(numberChangeListener);
         vgapProperty().addListener(numberChangeListener);
@@ -71,49 +76,155 @@ public abstract class TilePaneBase extends Pane {
         });
     }
 
-    public final void setEnableAnimation(boolean enableAnimation) {
-        enableAnimationProperty().set(enableAnimation);
+    public final void setEnableAnim(boolean enableAnim) {
+        enableAnimProperty().set(enableAnim);
     }
 
-    public final boolean isEnableAnimation() {
-        return enableAnimation == null ? DEFAULT_ENABLE_ANIMATION : enableAnimationProperty().get();
+    public final boolean getEnableAnim() {
+        return enableAnim == null ? DEFAULT_ENABLE_ANIM : enableAnimProperty().get();
     }
 
-    public final SimpleBooleanProperty enableAnimationProperty() {
-        if (enableAnimation == null) {
-            enableAnimation = new SimpleBooleanProperty(DEFAULT_ENABLE_ANIMATION);
+    public final StyleableBooleanProperty enableAnimProperty() {
+        if (enableAnim == null) {
+            enableAnim = new SimpleStyleableBooleanProperty(
+                    StyleableProperties.ENABLE_ANIM, this, "enableAnim", DEFAULT_ENABLE_ANIM);
         }
-        return enableAnimation;
+        return enableAnim;
     }
 
-    public final SimpleDoubleProperty hgapProperty() {
+    public final DoubleProperty hgapProperty() {
         if (hgap == null) {
-            hgap = new SimpleDoubleProperty(0);
+            hgap = new StyleableDoubleProperty() {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<TilePaneBase, Number> getCssMetaData() {
+                    return TilePaneBase.StyleableProperties.HGAP;
+                }
+
+                @Override
+                public Object getBean() {
+                    return TilePaneBase.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "hgap";
+                }
+            };
         }
-        return this.hgap;
+        return hgap;
+    }
+
+    public final void setHgap(double value) {
+        hgapProperty().set(value);
     }
 
     public final double getHgap() {
         return hgap == null ? 0 : hgap.get();
     }
 
-    public final void setHgap(final double hgap) {
-        this.hgapProperty().set(hgap);
+    public final DoubleProperty vgapProperty() {
+        if (vgap == null) {
+            vgap = new StyleableDoubleProperty() {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<TilePaneBase, Number> getCssMetaData() {
+                    return TilePaneBase.StyleableProperties.VGAP;
+                }
+
+                @Override
+                public Object getBean() {
+                    return TilePaneBase.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "vgap";
+                }
+            };
+        }
+        return vgap;
     }
 
-    public final SimpleDoubleProperty vgapProperty() {
-        if (vgap == null) {
-            vgap = new SimpleDoubleProperty(0);
-        }
-        return this.vgap;
+    public final void setVgap(double value) {
+        vgapProperty().set(value);
     }
 
     public final double getVgap() {
         return vgap == null ? 0 : vgap.get();
     }
 
-    public final void setVgap(final double vgap) {
-        this.vgapProperty().set(vgap);
+    private static class StyleableProperties {
+        private static final CssMetaData<TilePaneBase, Number> HGAP =
+                new CssMetaData<TilePaneBase, Number>("-fx-hgap",
+                        SizeConverter.getInstance(), 0.0) {
+
+                    @Override
+                    public boolean isSettable(TilePaneBase node) {
+                        return node.hgap == null ||
+                                !node.hgap.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(TilePaneBase node) {
+                        return (StyleableProperty<Number>) node.hgapProperty();
+                    }
+                };
+
+        private static final CssMetaData<TilePaneBase, Boolean> ENABLE_ANIM = new CssMetaData<TilePaneBase, Boolean>(
+                "-fx-enable-anim", BooleanConverter.getInstance(), true) {
+
+            @Override
+            public StyleableProperty<Boolean> getStyleableProperty(TilePaneBase control) {
+                return control.enableAnimProperty();
+            }
+
+            @Override
+            public boolean isSettable(TilePaneBase control) {
+                return control.enableAnim == null || !control.enableAnim.isBound();
+            }
+        };
+
+        private static final CssMetaData<TilePaneBase, Number> VGAP =
+                new CssMetaData<TilePaneBase, Number>("-fx-vgap",
+                        SizeConverter.getInstance(), 0.0) {
+
+                    @Override
+                    public boolean isSettable(TilePaneBase node) {
+                        return node.vgap == null ||
+                                !node.vgap.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(TilePaneBase node) {
+                        return (StyleableProperty<Number>) node.vgapProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(Pane.getClassCssMetaData());
+            Collections.addAll(styleables, ENABLE_ANIM, HGAP, VGAP);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
+        return getClassCssMetaData();
+    }
+
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
     }
 
     public final SimpleDoubleProperty prefTileWidthProperty() {
@@ -146,7 +257,7 @@ public abstract class TilePaneBase extends Pane {
         this.prefTileHeightProperty().set(prefTileHeight);
     }
 
-    protected abstract void customLayout() ;
+    protected abstract void customLayout();
 
     protected void setBaseHeight(double h) {
         setMinHeight(h);

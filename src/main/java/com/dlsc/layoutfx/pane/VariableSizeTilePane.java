@@ -57,7 +57,7 @@ public class VariableSizeTilePane extends TilePaneBase {
         if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        if (isEnableAnimation()) {
+        if (getEnableAnim()) {
             if (layoutAnim == null) {
                 layoutAnim = new Timeline();
             }

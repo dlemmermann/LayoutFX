@@ -30,11 +30,7 @@ public class FixedSizeTilePane extends TilePaneBase {
         if (eachRowLen == 0) {
             return;
         }
-        if (eachRowLen > totalLen) {
-            multiLineLayout(totalLen, nodes, eachRowLen);
-        } else {
-            multiLineLayout(totalLen, nodes, eachRowLen);
-        }
+        multiLineLayout(totalLen, nodes, eachRowLen);
     }
 
     private void multiLineLayout(int totalLen, ObservableList<Node> nodes, int eachRowLen) {
@@ -49,14 +45,14 @@ public class FixedSizeTilePane extends TilePaneBase {
         if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        if (isEnableAnimation()) {
+        if (getEnableAnim()) {
             if (layoutAnim == null) {
                 layoutAnim = new Timeline();
             }
             KeyValue[] keyValues = new KeyValue[totalLen * 2];
             for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
                 Region pane = (Region) nodes.get(i);
-                keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * getPrefTileWidth() + (i % rowLen + 1) * newHgap);
+                keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * getPrefTileWidth() + (i % rowLen+1 ) * newHgap);
                 keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * getPrefTileHeight() + (i / rowLen) * getVgap());
             }
             KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
