@@ -2,14 +2,16 @@ package com.dlsc.layoutfx.pane;
 
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.css.*;
-import javafx.css.converter.BooleanConverter;
-import javafx.css.converter.SizeConverter;
+import javafx.css.converter.*;
+import javafx.geometry.Insets;
+import javafx.geometry.Side;
 import javafx.scene.Node;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.util.Duration;
 
 import java.util.*;
 
@@ -20,31 +22,20 @@ import java.util.*;
  * <p>
  * TODO: [V] 1. A boolean that turns animations on and off
  * TODO:     2. maximum width and height crm tile pane
- * TODO:     3. supportPadding
+ * TODO: [V] 3. supportPadding
  */
 public abstract class TilePaneBase extends Pane {
 
-    protected static final double LAYOUT_ANIME_SPEED = 180;
-    protected static final int DEFAULT_PREF_TILE_WIDTH = 100;
-    protected static final int DEFAULT_PREF_TILE_HEIGHT = 100;
-    protected Timeline layoutAnim;
-    /**
-     * The width of each child element
-     */
-    private SimpleDoubleProperty prefTileWidth;
-    /**
-     * the height of each child element
-     */
-    private SimpleDoubleProperty prefTileHeight;
-    /**
-     * whether to enable layout animation;
-     * true->enable
-     */
-    private StyleableBooleanProperty enableAnim;
-    protected static final boolean DEFAULT_ENABLE_ANIM = true;
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180);
+    private StyleableObjectProperty<Duration> animationDuration;
 
+    protected Timeline layoutAnim;
+
+    private StyleableBooleanProperty animated;
+    protected static final boolean DEFAULT_ANIMATED = true;
     private DoubleProperty vgap;
     private DoubleProperty hgap;
+    protected boolean oneColumn;
 
     public TilePaneBase() {
         getChildren().addListener((ListChangeListener<Node>) c -> customLayout());
@@ -62,10 +53,7 @@ public abstract class TilePaneBase extends Pane {
         minWidthProperty().addListener(numberChangeListener);
         minHeightProperty().addListener(numberChangeListener);
 
-        prefTileHeightProperty().addListener(numberChangeListener);
-        prefTileWidthProperty().addListener(numberChangeListener);
-
-        enableAnimProperty().addListener(it -> customLayout());
+        animatedProperty().addListener(it -> customLayout());
 
         hgapProperty().addListener(numberChangeListener);
         vgapProperty().addListener(numberChangeListener);
@@ -76,20 +64,47 @@ public abstract class TilePaneBase extends Pane {
         });
     }
 
-    public final void setEnableAnim(boolean enableAnim) {
-        enableAnimProperty().set(enableAnim);
-    }
-
-    public final boolean getEnableAnim() {
-        return enableAnim == null ? DEFAULT_ENABLE_ANIM : enableAnimProperty().get();
-    }
-
-    public final StyleableBooleanProperty enableAnimProperty() {
-        if (enableAnim == null) {
-            enableAnim = new SimpleStyleableBooleanProperty(
-                    StyleableProperties.ENABLE_ANIM, this, "enableAnim", DEFAULT_ENABLE_ANIM);
+    // Calculate the maximum height of the child node as the height of the tile
+    protected double computeTileHeight() {
+        int size = getManagedChildren().size();
+        double maxHeight = 0;
+        for (int i = 0; i < size; i++) {
+            Region node = (Region) getManagedChildren().get(i);
+            if (node.getHeight() > maxHeight) {
+                maxHeight = node.getHeight();
+            }
         }
-        return enableAnim;
+        return maxHeight;
+    }
+
+    // Calculate the maximum width of the child node as the width of the tile
+    protected double computeTileWidth() {
+        int size = getManagedChildren().size();
+        double maxWidth = 0;
+        for (int i = 0; i < size; i++) {
+            Node node = getManagedChildren().get(i);
+            double width = node.getLayoutBounds().getWidth();
+            if (width > maxWidth) {
+                maxWidth = width;
+            }
+        }
+        return maxWidth;
+    }
+
+    public final void setAnimated(boolean animated) {
+        animatedProperty().set(animated);
+    }
+
+    public final boolean getAnimated() {
+        return animated == null ? DEFAULT_ANIMATED : animatedProperty().get();
+    }
+
+    public final StyleableBooleanProperty animatedProperty() {
+        if (animated == null) {
+            animated = new SimpleStyleableBooleanProperty(
+                    StyleableProperties.ENABLE_ANIM, this, "animated", DEFAULT_ANIMATED);
+        }
+        return animated;
     }
 
     public final DoubleProperty hgapProperty() {
@@ -162,6 +177,22 @@ public abstract class TilePaneBase extends Pane {
         return vgap == null ? 0 : vgap.get();
     }
 
+    public final StyleableObjectProperty<Duration> animationDurationProperty() {
+        if (animationDuration == null) {
+            animationDuration = new SimpleStyleableObjectProperty<>(StyleableProperties.ANIMATION_DURATION, this,
+                    "animationDuration", DEFAULT_ANIMATION_DURATION);
+        }
+        return this.animationDuration;
+    }
+
+    public final Duration getAnimationDuration() {
+        return animationDuration == null ? DEFAULT_ANIMATION_DURATION : animationDuration.get();
+    }
+
+    public final void setAnimationDuration(final Duration animationDuration) {
+        this.animationDurationProperty().set(animationDuration);
+    }
+
     private static class StyleableProperties {
         private static final CssMetaData<TilePaneBase, Number> HGAP =
                 new CssMetaData<TilePaneBase, Number>("-fx-hgap",
@@ -180,16 +211,16 @@ public abstract class TilePaneBase extends Pane {
                 };
 
         private static final CssMetaData<TilePaneBase, Boolean> ENABLE_ANIM = new CssMetaData<TilePaneBase, Boolean>(
-                "-fx-enable-anim", BooleanConverter.getInstance(), true) {
+                "-fx-animated", BooleanConverter.getInstance(), DEFAULT_ANIMATED) {
 
             @Override
             public StyleableProperty<Boolean> getStyleableProperty(TilePaneBase control) {
-                return control.enableAnimProperty();
+                return control.animatedProperty();
             }
 
             @Override
             public boolean isSettable(TilePaneBase control) {
-                return control.enableAnim == null || !control.enableAnim.isBound();
+                return control.animated == null || !control.animated.isBound();
             }
         };
 
@@ -208,12 +239,24 @@ public abstract class TilePaneBase extends Pane {
                         return (StyleableProperty<Number>) node.vgapProperty();
                     }
                 };
+        private static final CssMetaData<TilePaneBase, Duration> ANIMATION_DURATION = new CssMetaData<TilePaneBase, Duration>(
+                "-fx-animation-duration", DurationConverter.getInstance(), DEFAULT_ANIMATION_DURATION) {
 
+            @Override
+            public boolean isSettable(TilePaneBase control) {
+                return control.animationDuration == null || !control.animationDuration.isBound();
+            }
+
+            @Override
+            public StyleableProperty<Duration> getStyleableProperty(TilePaneBase control) {
+                return control.animationDurationProperty();
+            }
+        };
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(Pane.getClassCssMetaData());
-            Collections.addAll(styleables, ENABLE_ANIM, HGAP, VGAP);
+            Collections.addAll(styleables, ENABLE_ANIM, HGAP, VGAP, ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
@@ -227,36 +270,6 @@ public abstract class TilePaneBase extends Pane {
         return StyleableProperties.STYLEABLES;
     }
 
-    public final SimpleDoubleProperty prefTileWidthProperty() {
-        if (prefTileWidth == null) {
-            prefTileWidth = new SimpleDoubleProperty(DEFAULT_PREF_TILE_WIDTH);
-        }
-        return this.prefTileWidth;
-    }
-
-    public final double getPrefTileWidth() {
-        return prefTileWidth == null ? 0 : prefTileWidth.get();
-    }
-
-    public final void setPrefTileWidth(final double prefTileWidth) {
-        this.prefTileWidthProperty().set(prefTileWidth);
-    }
-
-    public final SimpleDoubleProperty prefTileHeightProperty() {
-        if (prefTileHeight == null) {
-            prefTileHeight = new SimpleDoubleProperty(DEFAULT_PREF_TILE_HEIGHT);
-        }
-        return this.prefTileHeight;
-    }
-
-    public final double getPrefTileHeight() {
-        return prefTileHeight == null ? 0 : prefTileHeight.get();
-    }
-
-    public final void setPrefTileHeight(final double prefTileHeight) {
-        this.prefTileHeightProperty().set(prefTileHeight);
-    }
-
     protected abstract void customLayout();
 
     protected void setBaseHeight(double h) {
@@ -264,4 +277,37 @@ public abstract class TilePaneBase extends Pane {
         setPrefHeight(h);
         setMaxHeight(h);
     }
+
+    /**
+     * computes the padding of the specified side
+     */
+    protected double getInset(Side side) {
+        Insets padding = (getPadding() == null ? Insets.EMPTY : getPadding());
+        if (Side.TOP == side) {
+            return padding.getTop();
+        } else if (Side.RIGHT == side) {
+            return padding.getRight();
+        } else if (Side.BOTTOM == side) {
+            return padding.getBottom();
+        } else {
+            return padding.getLeft();
+        }
+    }
+
+    /**
+     * Calculate horizontal padding
+     */
+    protected double getHorInset() {
+        Insets padding = (getPadding() == null ? Insets.EMPTY : getPadding());
+        return padding.getRight() + padding.getLeft();
+    }
+
+    /**
+     * calculate vertical padding
+     */
+    protected double getVerInset() {
+        Insets padding = (getPadding() == null ? Insets.EMPTY : getPadding());
+        return padding.getTop() + padding.getBottom();
+    }
+
 }

@@ -1,13 +1,15 @@
 package com.dlsc.layoutfx.pane;
 
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
+import javafx.animation.*;
+import javafx.beans.property.DoubleProperty;
 import javafx.collections.ObservableList;
+import javafx.css.*;
+import javafx.css.converter.SizeConverter;
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
-import javafx.util.Duration;
+
+import java.util.*;
 
 /**
  * Layout features:<br/>
@@ -18,68 +20,325 @@ import javafx.util.Duration;
  * 5: Child elements have the same width and height
  */
 public class VariableSizeTilePane extends TilePaneBase {
+    private static final int DEFAULT_MIN_TILE_WIDTH = 100;
+    private static final int DEFAULT_MIN_TILE_HEIGHT = 100;
+    protected DoubleProperty minTileWidth;
+    protected DoubleProperty minTileHeight;
+    private static final int DEFAULT_MAX_TILE_WIDTH = 180;
+    private static final int DEFAULT_MAX_TILE_HEIGHT = 180;
+    protected DoubleProperty maxTileWidth;
+    protected DoubleProperty maxTileHeight;
 
     protected void customLayout() {
         ObservableList<Node> nodes = getChildren();
-        int totalLen = nodes.size();
-        if (totalLen == 0) {
+        int nodeSize = nodes.size();
+        if (nodeSize == 0) {
             return;
         }
-        double rowWidth = this.getWidth();
-        double blankWidth = (rowWidth % (getPrefTileWidth() + getHgap())) + getHgap();
-        int eachRowLen = (int) (rowWidth / (getPrefTileWidth() + getHgap()));
-        if (eachRowLen == 0) {
-            return;
-        }
-        if (eachRowLen > totalLen) {
-            singleLineLayout(totalLen, nodes, rowWidth, eachRowLen);
+        double containerWidth = this.getWidth() - getHorInset();
+        double minTileW = getMinTileWidth();
+        double maxTileW = getMaxTileWidth();
+        //we set is the minimum gap
+        double minHgap = getHgap();
+        int rowTileCount = (int) Math.floor(containerWidth / (minTileW + minHgap));
+        //Maybe it will be 0, if it is 0, it will be assigned a value of 1
+        rowTileCount = Math.max(1, rowTileCount);
+        double newW;
+        double hgap;
+        double offsetX = 0;
+        //Case only one column
+        if (rowTileCount <= 1) {
+            hgap = 0;
+            oneColumn = true;
+            if (containerWidth >= maxTileW) {
+                newW = maxTileW;
+                offsetX = Math.max(0, (containerWidth - newW) / 2.0);
+            } else {
+                newW = containerWidth;
+                offsetX = 0;
+            }
         } else {
-            multiLineLayout(totalLen, nodes, blankWidth, eachRowLen);
+            double extraSpace = containerWidth - rowTileCount * minTileW - (rowTileCount - 1) * minHgap;
+            double increase = Math.min(extraSpace / rowTileCount, maxTileW - minTileW);
+            newW = minTileW + increase;
+            hgap = Math.max(minHgap, minHgap + (containerWidth - rowTileCount * newW - (rowTileCount - 1) * minHgap) / (rowTileCount - 1));
+            if (rowTileCount >= nodeSize) {
+                offsetX = (containerWidth - (newW * nodeSize + hgap * (nodeSize - 1))) / 2.0;
+            }
         }
+        double rowCount = Math.ceil(nodeSize * 1.0 / rowTileCount);
+        double newH = Math.min((newW / minTileW) * getMinTileHeight(), getMaxTileHeight());
+        //TODO: When the animation is not started, it will cause a height exception, find the reason, or use binding
+        setBaseHeight(newH * rowCount + (rowCount - 1) * getVgap() + getVerInset());
+        playLayoutAnim(rowTileCount, newW, newH, offsetX, hgap);
     }
 
-    private void multiLineLayout(int totalLen, ObservableList<Node> nodes, double blankWidth, int eachRowLen) {
-        double big = blankWidth / eachRowLen;
-        double cellWidth = getPrefTileWidth() + big;
-        double cellHeight = getPrefTileHeight() * (cellWidth / getPrefTileWidth());
-        setBaseHeight(((totalLen - 1) / eachRowLen + 1) * (cellHeight + getVgap()) - getVgap());
-        playLayoutAnim(totalLen, nodes, eachRowLen, cellWidth, cellHeight);
-    }
-
-    private void singleLineLayout(int totalLen, ObservableList<Node> nodes, double rowWidth, int eachRowLen) {
-        double cellWidth = (rowWidth - (getHgap() * (totalLen - 1))) / totalLen;
-        double cellHeight = getPrefTileHeight() * (cellWidth / getPrefTileWidth());
-        setBaseHeight(cellHeight);
-        playLayoutAnim(totalLen, nodes, eachRowLen, cellWidth, cellHeight);
-    }
-
-    private void playLayoutAnim(int totalLen, ObservableList<Node> nodes, int rowLen, double cellWidth, double cellHeight) {
+    private void playLayoutAnim(int rowLen, double tileWidth, double tileHeight, double offsetX, double gap) {
+        ObservableList<Node> nodes = getChildren();
+        int nodeSize = nodes.size();
         if (layoutAnim != null && layoutAnim.getStatus() == Animation.Status.RUNNING) {
             layoutAnim.stop();
         }
-        if (getEnableAnim()) {
+        if (getAnimated()) {
             if (layoutAnim == null) {
                 layoutAnim = new Timeline();
             }
-            KeyValue[] keyValues = new KeyValue[totalLen * 2];
-            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
-                Region pane = (Region) nodes.get(i);
-                pane.setPrefSize(cellWidth, cellHeight);
-                keyValues[j] = new KeyValue(pane.translateXProperty(), (i % rowLen) * cellWidth + (i % rowLen) * getHgap());
-                keyValues[j + 1] = new KeyValue(pane.translateYProperty(), (i / rowLen) * cellHeight + (i / rowLen) * getVgap());
+            KeyValue[] keyValues = new KeyValue[nodeSize * 2];
+            for (int i = 0, j = 0; i < nodeSize; i++, j += 2) {
+                Node node = nodes.get(i);
+                if (node instanceof Region) {
+                    Region pane = (Region) node;
+                    pane.setPrefSize(tileWidth, tileHeight);
+                    pane.setMinSize(tileWidth, tileHeight);
+                    pane.setMaxSize(tileWidth, tileHeight);
+                }
+                keyValues[j] = new KeyValue(node.layoutXProperty(), getInset(Side.LEFT) + offsetX + (i % rowLen) * tileWidth + (i % rowLen) * gap);
+                keyValues[j + 1] = new KeyValue(node.layoutYProperty(), getInset(Side.TOP) + (i / rowLen) * tileHeight + (i / rowLen) * getVgap());
             }
-            KeyFrame keyFrame = new KeyFrame(Duration.millis(LAYOUT_ANIME_SPEED), keyValues);
+            KeyFrame keyFrame = new KeyFrame(getAnimationDuration(), keyValues);
             layoutAnim.getKeyFrames().setAll(keyFrame);
             layoutAnim.play();
         } else {
-            for (int i = 0, j = 0; i < totalLen; i++, j += 2) {
-                Region pane = (Region) nodes.get(i);
-                pane.setPrefSize(cellWidth, cellHeight);
-                pane.setTranslateX((i % rowLen) * cellWidth + (i % rowLen) * getHgap());
-                pane.setTranslateY((i / rowLen) * cellHeight + (i / rowLen) * getVgap());
+            for (int i = 0, j = 0; i < nodeSize; i++, j += 2) {
+                Node node = nodes.get(i);
+                if (node instanceof Region) {
+                    Region pane = (Region) node;
+                    pane.setPrefSize(tileWidth, tileHeight);
+                    pane.setMaxSize(tileWidth, tileHeight);
+                }
+                node.setLayoutX(getInset(Side.LEFT) + offsetX + (i % rowLen) * tileWidth + (i % rowLen) * gap);
+                node.setLayoutY(getInset(Side.TOP) + (i / rowLen) * tileHeight + (i / rowLen) * getVgap());
             }
         }
+    }
 
+    public final DoubleProperty minTileWidthProperty() {
+        if (minTileWidth == null) {
+            minTileWidth = new StyleableDoubleProperty(DEFAULT_MIN_TILE_WIDTH) {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<VariableSizeTilePane, Number> getCssMetaData() {
+                    return VariableSizeTilePane.StyleableProperties.MIN_TILE_WIDTH;
+                }
+
+                @Override
+                public Object getBean() {
+                    return VariableSizeTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "minTileWidth";
+                }
+            };
+        }
+        return minTileWidth;
+    }
+
+    public final void setMinTileWidth(double value) {
+        minTileWidthProperty().set(value);
+    }
+
+    public final double getMinTileWidth() {
+        return minTileWidth == null ? DEFAULT_MIN_TILE_WIDTH : minTileWidth.get();
+    }
+
+    public final DoubleProperty minTileHeightProperty() {
+        if (minTileHeight == null) {
+            minTileHeight = new StyleableDoubleProperty(DEFAULT_MIN_TILE_HEIGHT) {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<VariableSizeTilePane, Number> getCssMetaData() {
+                    return VariableSizeTilePane.StyleableProperties.MIN_TILE_HEIGHT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return VariableSizeTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "minTileHeight";
+                }
+            };
+        }
+        return minTileHeight;
+    }
+
+    public final void setMinTileHeight(double value) {
+        minTileHeightProperty().set(value);
+    }
+
+    public final double getMinTileHeight() {
+        return minTileHeight == null ? DEFAULT_MIN_TILE_HEIGHT : minTileHeight.get();
+    }
+
+    public final DoubleProperty maxTileWidthProperty() {
+        if (maxTileWidth == null) {
+            maxTileWidth = new StyleableDoubleProperty(DEFAULT_MAX_TILE_WIDTH) {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<VariableSizeTilePane, Number> getCssMetaData() {
+                    return VariableSizeTilePane.StyleableProperties.MAX_TILE_WIDTH;
+                }
+
+                @Override
+                public Object getBean() {
+                    return VariableSizeTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "maxTileWidth";
+                }
+            };
+        }
+        return maxTileWidth;
+    }
+
+    public final void setMaxTileWidth(double value) {
+        maxTileWidthProperty().set(value);
+    }
+
+    public final double getMaxTileWidth() {
+        return maxTileWidth == null ? DEFAULT_MAX_TILE_WIDTH : maxTileWidth.get();
+    }
+
+    public final DoubleProperty maxTileHeightProperty() {
+        if (maxTileHeight == null) {
+            maxTileHeight = new StyleableDoubleProperty(DEFAULT_MIN_TILE_HEIGHT) {
+                @Override
+                public void invalidated() {
+                    requestLayout();
+                }
+
+                @Override
+                public CssMetaData<VariableSizeTilePane, Number> getCssMetaData() {
+                    return VariableSizeTilePane.StyleableProperties.MAX_TILE_HEIGHT;
+                }
+
+                @Override
+                public Object getBean() {
+                    return VariableSizeTilePane.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "maxTileHeight";
+                }
+            };
+        }
+        return maxTileHeight;
+    }
+
+    public final void setMaxTileHeight(double value) {
+        maxTileHeightProperty().set(value);
+    }
+
+    public final double getMaxTileHeight() {
+        return maxTileHeight == null ? DEFAULT_MAX_TILE_HEIGHT : maxTileHeight.get();
+    }
+
+    private static class StyleableProperties {
+        private static final CssMetaData<VariableSizeTilePane, Number> MIN_TILE_WIDTH =
+                new CssMetaData<VariableSizeTilePane, Number>("-fx-min-tile-width",
+                        SizeConverter.getInstance(), DEFAULT_MIN_TILE_WIDTH) {
+
+                    @Override
+                    public boolean isSettable(VariableSizeTilePane node) {
+                        return node.minTileWidth == null ||
+                                !node.minTileWidth.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(VariableSizeTilePane node) {
+                        return (StyleableProperty<Number>) node.minTileWidthProperty();
+                    }
+                };
+        private static final CssMetaData<VariableSizeTilePane, Number> MIN_TILE_HEIGHT =
+                new CssMetaData<VariableSizeTilePane, Number>("-fx-min-tile-height",
+                        SizeConverter.getInstance(), DEFAULT_MIN_TILE_HEIGHT) {
+
+                    @Override
+                    public boolean isSettable(VariableSizeTilePane node) {
+                        return node.minTileHeight == null ||
+                                !node.minTileHeight.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(VariableSizeTilePane node) {
+                        return (StyleableProperty<Number>) node.minTileHeightProperty();
+                    }
+                };
+
+        private static final CssMetaData<VariableSizeTilePane, Number> MAX_TILE_WIDTH =
+                new CssMetaData<VariableSizeTilePane, Number>("-fx-max-tile-width",
+                        SizeConverter.getInstance(), DEFAULT_MAX_TILE_WIDTH) {
+
+                    @Override
+                    public boolean isSettable(VariableSizeTilePane node) {
+                        return node.maxTileWidth == null ||
+                                !node.maxTileWidth.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(VariableSizeTilePane node) {
+                        return (StyleableProperty<Number>) node.maxTileWidthProperty();
+                    }
+                };
+        private static final CssMetaData<VariableSizeTilePane, Number> MAX_TILE_HEIGHT =
+                new CssMetaData<VariableSizeTilePane, Number>("-fx-max-tile-height",
+                        SizeConverter.getInstance(), DEFAULT_MAX_TILE_HEIGHT) {
+
+                    @Override
+                    public boolean isSettable(VariableSizeTilePane node) {
+                        return node.maxTileHeight == null ||
+                                !node.maxTileHeight.isBound();
+                    }
+
+                    @Override
+                    public StyleableProperty<Number> getStyleableProperty(VariableSizeTilePane node) {
+                        return (StyleableProperty<Number>) node.maxTileHeightProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            final List<CssMetaData<? extends Styleable, ?>> styleables = new ArrayList<>(TilePaneBase.getClassCssMetaData());
+            Collections.addAll(styleables, MIN_TILE_WIDTH, MIN_TILE_HEIGHT, MAX_TILE_WIDTH, MAX_TILE_HEIGHT);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getCssMetaData() {
+        return getClassCssMetaData();
+    }
+
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return VariableSizeTilePane.StyleableProperties.STYLEABLES;
+    }
+
+    @Override
+    protected double computeMinWidth(double height) {
+        if (oneColumn) {
+            return getMinTileWidth() + getHorInset();
+        }
+        return super.computeMinWidth(height);
     }
 
 }

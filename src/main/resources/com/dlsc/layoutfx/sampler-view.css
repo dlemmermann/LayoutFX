@@ -12,6 +12,12 @@
     -fx-border-style: dotted;
     -fx-border-insets: -1px;
     -fx-border-width: 2px;
+    -fx-background-color: lightblue;
+    -fx-padding: 20px;
+    -fx-vgap: 15px;
+    -fx-hgap: 15px;
+    /*-fx-animated: false;*/
+    -fx-animation-duration:1ms
 }
 
 .vertical-layout {

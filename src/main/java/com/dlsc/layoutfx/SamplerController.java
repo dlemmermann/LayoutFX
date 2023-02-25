@@ -25,7 +25,7 @@ public class SamplerController implements Initializable  {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        fixedSizeTilePane.enableAnimProperty().bind(animateFixedSizeTilePane.selectedProperty());
-        variableSizeTilePane.enableAnimProperty().bind(animateVariableSizeTilePane.selectedProperty());
+        //fixedSizeTilePane.animatedProperty().bind(animateFixedSizeTilePane.selectedProperty());
+        //variableSizeTilePane.animatedProperty().bind(animateVariableSizeTilePane.selectedProperty());
     }
 }
