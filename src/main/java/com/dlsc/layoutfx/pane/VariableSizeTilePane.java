@@ -68,7 +68,8 @@ public class VariableSizeTilePane extends TilePaneBase {
         }
         double rowCount = Math.ceil(nodeSize * 1.0 / rowTileCount);
         double newH = Math.min((newW / minTileW) * getMinTileHeight(), getMaxTileHeight());
-        //TODO: When the animation is not started, it will cause a height exception, find the reason, or use binding
+        //TODO: 1. When the animation is turned off at startup, the height of the Pane will be 0, and only padding will appear.
+        //TODO: 2. If the animation is turned off after startup, and the width of the Pane is quickly adjusted multiple times, the Node will not be visible on the interface, or the position of the Pane will move down.
         setBaseHeight(newH * rowCount + (rowCount - 1) * getVgap() + getVerInset());
         playLayoutAnim(rowTileCount, newW, newH, offsetX, hgap);
     }

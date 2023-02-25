@@ -1,6 +1,6 @@
 .root {
     -fx-pref-width: 800px;
-    -fx-pref-height: 650px;
+    -fx-pref-height: 700px;
 }
 
 .wrapper {
@@ -17,7 +17,7 @@
     -fx-vgap: 15px;
     -fx-hgap: 15px;
     /*-fx-animated: false;*/
-    -fx-animation-duration:1ms
+    -fx-animation-duration:100ms
 }
 
 .vertical-layout {

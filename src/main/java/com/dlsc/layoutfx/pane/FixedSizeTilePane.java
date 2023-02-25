@@ -51,7 +51,7 @@ public class FixedSizeTilePane extends TilePaneBase {
         }
         double rowCount = Math.ceil(nodeSize * 1.0 / rowTileCount);
         double height = computeTileHeight() * rowCount + (rowCount - 1) * getVgap() + getVerInset();
-        //TODO: When the animation is not started, it will cause a height exception, find the reason, or use binding
+        //TODO: If the animation is turned off after startup, and the width of the Pane is quickly adjusted multiple times, the Node will not be visible on the interface, or the position of the Pane will move down.
         setBaseHeight(height);
         playLayoutAnim(rowTileCount, hgap, offsetX);
 

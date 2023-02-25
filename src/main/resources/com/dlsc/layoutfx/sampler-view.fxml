@@ -40,6 +40,7 @@
             <VBox styleClass="vertical-layout">
                 <StackPane styleClass="wrapper" VBox.vgrow="ALWAYS">
                     <VariableSizeTilePane fx:id="variableSizeTilePane" vgap="20" hgap="20" StackPane.alignment="CENTER"
+                                          minTileWidth="190" maxTileWidth="280" minTileHeight="160" maxTileHeight="200"
                                           styleClass="pane">
                         <Label text="Tile 1" styleClass="tile-label"/>
                         <Label text="Tile 2" styleClass="tile-label"/>
